@@ -1,0 +1,6 @@
+{
+  "name": "Smart Bazar",
+  "description": "Smart Bazar - Mobile-first online shopping experience in Bangladesh with flash sales, cash on delivery, and bKash/Nagad checkout.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

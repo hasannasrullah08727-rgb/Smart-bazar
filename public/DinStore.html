@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Smart Bazar - Quality Products & Fast Delivery in Bangladesh</title>
+  <meta name="theme-color" content="#f2530a">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2224%22 fill=%22%23f2530a%22/><text y=%2268%22 font-size=%2260%22 x=%2220%22>🛍️</text></svg>">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;500;600;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+  <style>
+    :root {
+      --brand: #f85606;
+      --brand-d: #d94a04;
+      --text: #212121;
+      --grey: #757575;
+      --line: #e0e0e0;
+      --bg: #f5f5f5;
+      --ok: #2e7d32;
+      --err: #d32f2f;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'Roboto', 'Noto Sans Bengali', Arial, sans-serif;
+      font-size: 14px;
+      line-height: 1.4;
+    }
+    a { color: inherit; text-decoration: none; }
+    button, input, select, textarea { font-family: inherit; font-size: inherit; }
+
+    /* Layout Shell */
+    .top-header {
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      background: #fff;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .header-inner {
+      max-width: 900px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .search-box {
+      flex: 1;
+      position: relative;
+      background: var(--bg);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      padding: 6px 10px;
+    }
+    .search-box input {
+      width: 100%;
+      border: none;
+      background: transparent;
+      outline: none;
+      font-size: 13px;
+      margin: 0 6px;
+    }
+    .badge {
+      position: absolute;
+      top: -4px;
+      right: -6px;
+      background: var(--brand);
+      color: #fff;
+      font-size: 10px;
+      font-weight: 700;
+      min-width: 16px;
+      height: 16px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 3px;
+    }
+    main#app {
+      max-width: 900px;
+      min-height: 70vh;
+      margin: 0 auto;
+      padding: 10px 10px 80px 10px;
+    }
+    .page-enter {
+      animation: pageIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    @keyframes pageIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    /* Buttons */
+    .btn {
+      background: var(--brand);
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      padding: 11px 16px;
+      font-weight: 700;
+      cursor: pointer;
+      text-align: center;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: background 0.2s, transform 0.1s;
+    }
+    .btn:active { transform: scale(0.98); }
+    .btn.line { background: #fff; border: 1px solid var(--brand); color: var(--brand); }
+    .btn.red { background: var(--err); color: #fff; }
+    .btn.blk { width: 100%; display: flex; }
+    .btn.sm { padding: 6px 10px; font-size: 12px; }
+    .btn:disabled { background: #bdbdbd; cursor: not-allowed; }
+    
+    /* Product card */
+    .product-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+    @media (min-width: 700px) {
+      .product-grid { grid-template-columns: repeat(4, 1fr); }
+    }
+    .card {
+      background: #fff;
+      border-radius: 4px;
+      border: 1px solid var(--line);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      cursor: pointer;
+    }
+    .card-thumb {
+      height: 170px;
+      position: relative;
+      background: #fafafa;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .card-thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .disc-tag {
+      position: absolute;
+      top: 0;
+      left: 0;
+      background: var(--brand);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 0 8px 8px 0;
+    }
+    .wish-btn {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.95);
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: #757575;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .wish-btn.active { color: #e91e63; }
+    .sold-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .card-body { padding: 8px; flex: 1; display: flex; flex-direction: column; justify-content: space-between; }
+    .card-title {
+      font-size: 13px;
+      height: 36px;
+      line-height: 18px;
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      margin-bottom: 4px;
+    }
+    .card-price { font-size: 16px; font-weight: 700; color: var(--brand); }
+    .card-oldprice { font-size: 11px; color: var(--grey); text-decoration: line-through; margin-left: 4px; }
+    .quick-add {
+      position: absolute;
+      bottom: 8px;
+      right: 8px;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: var(--brand);
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Fixed Bottom Nav */
+    #bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #fff;
+      border-top: 1px solid var(--line);
+      height: 56px;
+      display: flex;
+      z-index: 999;
+    }
+    .nav-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: var(--grey);
+      font-size: 10px;
+      gap: 3px;
+      position: relative;
+    }
+    .nav-item i { font-size: 18px; }
+    .nav-item.active { color: var(--brand); font-weight: 700; }
+
+    /* Toast */
+    #toast {
+      position: fixed;
+      bottom: 70px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(33,33,33,0.92);
+      color: #fff;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 13px;
+      z-index: 2000;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    #toast.show { opacity: 1; }
+
+    /* Bottom Sheet */
+    #sheet {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 1500;
+      display: none;
+      align-items: flex-end;
+      justify-content: center;
+    }
+    #sheet.show { display: flex; }
+    .sheet-box {
+      background: #fff;
+      width: 100%;
+      max-width: 600px;
+      max-height: 80vh;
+      border-radius: 16px 16px 0 0;
+      overflow-y: auto;
+      padding: 16px;
+      box-shadow: 0 -4px 16px rgba(0,0,0,0.15);
+    }
+
+    /* Skeleton shimmer */
+    .sk {
+      background: linear-gradient(90deg, #ececec 25%, #f5f5f5 50%, #ececec 75%);
+      background-size: 200% 100%;
+      animation: skAnim 1.4s infinite;
+      border-radius: 4px;
+    }
+    @keyframes skAnim {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+
+    @media print {
+      .noprint, .top-header, #bottom-nav, footer { display: none !important; }
+      body, main#app { background: #fff !important; padding: 0 !important; max-width: 100% !important; }
+    }
+  </style>
+</head>
+<body>
+
+<script id="cfg">
+/* ===== Put your Firebase project config here ===== */
+window.DINSTORE_FIREBASE = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT_ID.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
+</script>
+
+<!-- Sticky Header -->
+<header class="top-header">
+  <div class="header-inner">
+    <button id="btn-back" onclick="window.history.back()" style="display:none;background:none;border:none;font-size:16px;cursor:pointer;padding:4px 8px;">
+      <i class="fa fa-arrow-left"></i>
+    </button>
+    <div class="search-box">
+      <i class="fa fa-search" style="color:var(--grey);"></i>
+      <input type="text" id="kw" placeholder="Search in Smart Bazar" autocomplete="off">
+      <i class="fa fa-microphone" id="btn-voice" style="color:var(--grey);cursor:pointer;"></i>
+    </div>
+    <a href="#/cart" style="position:relative;padding:6px;cursor:pointer;">
+      <i class="fa fa-shopping-cart" style="font-size:18px;"></i>
+      <span class="badge" id="cart-badge" style="display:none;">0</span>
+    </a>
+    <button onclick="openHelpSheet()" style="background:none;border:none;font-size:18px;cursor:pointer;padding:6px;color:var(--text);">
+      <i class="fa fa-comment-dots"></i>
+    </button>
+  </div>
+  <div id="suggest-box" style="display:none;max-width:900px;margin:0 auto;background:#fff;border-top:1px solid var(--line);box-shadow:0 4px 10px rgba(0,0,0,0.1);border-radius:0 0 8px 8px;max-height:240px;overflow-y:auto;"></div>
+</header>
+
+<!-- Main App Shell -->
+<main id="app">
+  <div id="sk-loader" style="display:block;">
+    <div class="sk" style="height:160px;margin-bottom:10px;"></div>
+    <div class="sk" style="height:65px;margin-bottom:10px;"></div>
+    <div class="product-grid">
+      <div class="sk" style="height:250px;"></div>
+      <div class="sk" style="height:250px;"></div>
+      <div class="sk" style="height:250px;"></div>
+      <div class="sk" style="height:250px;"></div>
+    </div>
+  </div>
+  <div id="page-content" class="page-enter" style="display:none;"></div>
+</main>
+
+<!-- Bottom Sheet -->
+<div id="sheet" onclick="closeSheet()">
+  <div class="sheet-box" onclick="event.stopPropagation()">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;border-bottom:1px solid var(--line);padding-bottom:8px;">
+      <h3 id="sheet-title" style="font-size:15px;font-weight:700;"></h3>
+      <button onclick="closeSheet()" style="background:none;border:none;font-size:18px;cursor:pointer;">&times;</button>
+    </div>
+    <div id="sheet-body"></div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- Fixed Bottom Nav -->
+<nav id="bottom-nav">
+  <a href="#/" class="nav-item" id="nav-home">
+    <i class="fa fa-home"></i>
+    <span>Home</span>
+  </a>
+  <a href="#/explore" class="nav-item" id="nav-explore">
+    <i class="fa fa-compass"></i>
+    <span>Explore</span>
+  </a>
+  <a href="#/cart" class="nav-item" id="nav-cart">
+    <i class="fa fa-shopping-cart"></i>
+    <span>Cart</span>
+    <span class="badge" id="nav-cart-badge" style="display:none;top:2px;right:25%;">0</span>
+  </a>
+  <a href="#/account" class="nav-item" id="nav-account">
+    <i class="fa fa-user"></i>
+    <span>Account</span>
+  </a>
+</nav>
+
+<script>
+/* ==================== SINGLE FILE DINSTORE LOGIC ==================== */
+const DISTRICTS = ['Dhaka','Gazipur','Narayanganj','Chattogram','Rajshahi','Khulna','Barishal','Sylhet','Rangpur','Mymensingh','Cumilla','Other'];
+const NEAR = ['Dhaka','Gazipur','Narayanganj'];
+const CATS = ['Mart','Fashion','Beauty','Gadgets','Home','Sports','Offers'];
+const SIZES = ['S','M','L','XL'];
+
+const SEED_DATA = [
+  {id:'p1',name:'Wireless Bluetooth Headphones Over Ear - Black',category:'Gadgets',brand:'SoundMax',price:850,oldPrice:1500,stock:25,rating:4.5,reviewCount:120,emoji:'🎧',color:'#90caf9',flash:true,options:[],description:'Over-ear wireless headphones with deep bass, 20 hours battery life, foldable design and built-in microphone for calls.'},
+  {id:'p2',name:"Men's Casual Cotton T-Shirt Full Sleeve",category:'Fashion',brand:'UrbanWear',price:299,oldPrice:600,stock:60,rating:4.2,reviewCount:45,emoji:'👕',color:'#a5d6a7',flash:true,options:SIZES,description:'Soft 100% cotton full sleeve t-shirt. Breathable, comfortable fit for daily wear.'},
+  {id:'p3',name:'Smart Watch T500 Plus Pro - Calling Function',category:'Gadgets',brand:'TechFit',price:950,oldPrice:2200,stock:18,rating:3.8,reviewCount:210,emoji:'⌚',color:'#ce93d8',flash:true,options:['Black','Pink','Blue'],description:'Bluetooth calling smart watch with heart rate, step counter, sleep monitor and multiple sports modes.'},
+  {id:'p4',name:'Kitchen Rack Organizer Multi-layer',category:'Home',brand:'HomeEase',price:1250,oldPrice:2500,stock:12,rating:4.8,reviewCount:30,emoji:'🗄️',color:'#ffcc80',flash:false,options:[],description:'Sturdy multi-layer rack to keep your kitchen tidy. Rust-resistant coating, easy assembly.'},
+  {id:'p5',name:'Mini Portable Electric Fan USB Rechargeable',category:'Gadgets',brand:'CoolBreeze',price:450,oldPrice:800,stock:40,rating:4.1,reviewCount:89,emoji:'🌀',color:'#80deea',flash:true,options:[],description:'Handheld rechargeable fan with 3 speed settings. Perfect for summer.'},
+  {id:'p6',name:'Sneakers for Men - Stylish White Running Shoes',category:'Fashion',brand:'StepUp',price:1800,oldPrice:3500,stock:20,rating:4.6,reviewCount:15,emoji:'👟',color:'#b0bec5',flash:false,options:['39','40','41','42','43'],description:'Lightweight running sneakers with cushioned sole and breathable mesh upper.'},
+  {id:'p7',name:'Premium Basmati Rice 5kg',category:'Mart',brand:'FreshField',price:720,oldPrice:820,stock:100,rating:4.7,reviewCount:310,emoji:'🍚',color:'#fff59d',flash:false,options:[],description:'Long grain premium basmati rice, aromatic and fluffy when cooked.'},
+  {id:'p8',name:'Soybean Oil 5 Litre',category:'Mart',brand:'PureDrop',price:890,oldPrice:950,stock:70,rating:4.4,reviewCount:205,emoji:'🛢️',color:'#ffe082',flash:false,options:[],description:'Refined soybean oil, rich in vitamin A and D. Ideal for everyday cooking.'},
+  {id:'p9',name:'Red Lentil (Masoor Dal) 2kg',category:'Mart',brand:'FreshField',price:260,oldPrice:300,stock:90,rating:4.3,reviewCount:98,emoji:'🫘',color:'#ef9a9a',flash:false,options:[],description:'Clean, quality red lentils. Cooks quickly and tastes great.'},
+  {id:'p10',name:'Vitamin C Brightening Face Serum 30ml',category:'Beauty',brand:'GlowLab',price:480,oldPrice:950,stock:35,rating:4.5,reviewCount:167,emoji:'🧴',color:'#ffcc80',flash:true,options:[],description:'Lightweight serum with 10% Vitamin C to brighten skin and reduce dark spots.'},
+  {id:'p11',name:'Matte Liquid Lipstick Set (6 pcs)',category:'Beauty',brand:'RoseBloom',price:550,oldPrice:1100,stock:28,rating:4.0,reviewCount:64,emoji:'💄',color:'#f48fb1',flash:false,options:[],description:'Long-lasting matte finish in 6 trendy shades. Smudge proof and waterproof.'},
+  {id:'p12',name:'Herbal Hair Oil 200ml',category:'Beauty',brand:'NaturaCare',price:220,oldPrice:350,stock:80,rating:4.3,reviewCount:142,emoji:'🌿',color:'#a5d6a7',flash:false,options:[],description:'Herbal blend hair oil that strengthens roots and reduces hair fall.'},
+  {id:'p13',name:'Women Cotton Three-Piece Salwar Kameez',category:'Fashion',brand:'Nari',price:1450,oldPrice:2800,stock:22,rating:4.4,reviewCount:53,emoji:'👗',color:'#f8bbd0',flash:false,options:['M','L','XL'],description:'Elegant printed three-piece set with soft cotton fabric. Perfect for daily and casual wear.'},
+  {id:'p14',name:"Panjabi for Men - Eid Collection",category:'Fashion',brand:'Deshi',price:1250,oldPrice:2400,stock:30,rating:4.6,reviewCount:77,emoji:'🥻',color:'#bcaaa4',flash:true,options:['M','L','XL','XXL'],description:'Embroidered premium panjabi with comfortable fabric and modern cut.'},
+  {id:'p15',name:'Non-Stick Fry Pan 28cm',category:'Home',brand:'HomeEase',price:690,oldPrice:1300,stock:26,rating:4.2,reviewCount:41,emoji:'🍳',color:'#cfd8dc',flash:false,options:[],description:'Durable non-stick coating, even heat distribution, comfortable handle.'},
+  {id:'p16',name:'LED Table Lamp Rechargeable',category:'Home',brand:'BrightUp',price:520,oldPrice:990,stock:34,rating:4.4,reviewCount:59,emoji:'💡',color:'#fff176',flash:false,options:[],description:'Touch dimmable LED lamp with USB charging and 3 colour modes.'},
+  {id:'p17',name:'Cotton Bed Sheet Set (King)',category:'Home',brand:'SleepWell',price:1150,oldPrice:2200,stock:15,rating:4.5,reviewCount:36,emoji:'🛏️',color:'#b39ddb',flash:false,options:['Blue','Grey','Pink'],description:'Double bed king-size sheet with 2 pillow covers. Soft and colour fast.'},
+  {id:'p18',name:'Cricket Bat - Kashmir Willow',category:'Sports',brand:'ProPlay',price:1650,oldPrice:2800,stock:10,rating:4.3,reviewCount:22,emoji:'🏏',color:'#ffab91',flash:false,options:[],description:'Kashmir willow bat with comfortable grip. Great for practice and tournament use.'},
+  {id:'p19',name:'Football Size 5',category:'Sports',brand:'ProPlay',price:780,oldPrice:1300,stock:32,rating:4.4,reviewCount:48,emoji:'⚽',color:'#c5e1a5',flash:false,options:[],description:'Machine stitched size 5 football with durable PU cover.'},
+  {id:'p20',name:'Yoga Mat 6mm Non-Slip',category:'Sports',brand:'FitLife',price:480,oldPrice:900,stock:45,rating:4.2,reviewCount:70,emoji:'🧘',color:'#80cbc4',flash:false,options:['Purple','Green','Blue'],description:'Cushioned non-slip yoga mat with carrying strap.'},
+  {id:'p21',name:'Power Bank 20000mAh Fast Charge',category:'Gadgets',brand:'VoltEdge',price:1550,oldPrice:2600,stock:3,rating:4.5,reviewCount:190,emoji:'🔋',color:'#ef9a9a',flash:true,options:[],description:'20000mAh power bank with dual USB output and 22.5W fast charging.'},
+  {id:'p22',name:'Gaming Mouse RGB 7200 DPI',category:'Gadgets',brand:'TechFit',price:650,oldPrice:1200,stock:0,rating:4.1,reviewCount:83,emoji:'🖱️',color:'#9fa8da',flash:false,options:[],description:'Wired gaming mouse with RGB lighting and adjustable DPI.'},
+  {id:'p23',name:'Black Seed Honey 500g',category:'Mart',brand:'NaturaCare',price:620,oldPrice:780,stock:50,rating:4.8,reviewCount:260,emoji:'🍯',color:'#ffd54f',flash:false,options:[],description:'Pure honey infused with black seed. Natural energy and wellness booster.'},
+  {id:'p24',name:'Premium Dates (Ajwa) 500g',category:'Mart',brand:'FreshField',price:1350,oldPrice:1600,stock:40,rating:4.9,reviewCount:330,emoji:'🌴',color:'#a1887f',flash:false,options:[],description:'Soft and fresh premium Ajwa dates.'}
+];
+
+const DEFAULT_COUPONS = [
+  {code:'WELCOME10',type:'pct',value:10,max:200,desc:'10% off (max ৳200)'},
+  {code:'SAVE100',type:'flat',value:100,min:1000,desc:'৳100 off on ৳1000+'},
+  {code:'FREESHIP',type:'ship',desc:'Free delivery'}
+];
+
+function getSvg(emoji, color) {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="${color||'#f85606'}"/><stop offset="100%" stop-color="#ffffff"/></linearGradient></defs><rect width="200" height="200" rx="16" fill="url(#g)"/><text x="50%" y="54%" font-size="90" text-anchor="middle" dominant-baseline="central">${emoji||'🛍️'}</text></svg>`;
+  return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+}
+
+function fmt(n) { return '৳ ' + Math.round(n||0).toLocaleString('en-US'); }
+function discPct(price, old) { return old > price ? Math.round((old - price) / old * 100) : 0; }
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.innerText = msg;
+  t.classList.add('show');
+  clearTimeout(window._tTimer);
+  window._tTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// Global mutable state
+const S = {
+  products: null,
+  users: null,
+  orders: [],
+  cart: [],
+  wish: [],
+  session: null,
+  recent: [],
+  reviews: {},
+  msgs: [],
+  searches: [],
+  coupon: '',
+  settings: { payNumber: '01712345678', phone: '01812345678', freeShip: 1500, nearFee: 60, farFee: 110 },
+  coupons: DEFAULT_COUPONS
+};
+
+function save(key) {
+  try {
+    localStorage.setItem('as_' + key, JSON.stringify(S[key]));
+  } catch(e) {}
+}
+
+function loadLocal() {
+  try {
+    S.products = JSON.parse(localStorage.getItem('as_products')) || SEED_DATA;
+    S.users = JSON.parse(localStorage.getItem('as_users')) || [];
+    S.orders = JSON.parse(localStorage.getItem('as_orders')) || [];
+    S.cart = JSON.parse(localStorage.getItem('as_cart')) || [];
+    S.wish = JSON.parse(localStorage.getItem('as_wish')) || [];
+    S.session = JSON.parse(localStorage.getItem('as_session')) || null;
+    S.recent = JSON.parse(localStorage.getItem('as_recent')) || [];
+    S.reviews = JSON.parse(localStorage.getItem('as_reviews')) || {};
+    S.searches = JSON.parse(localStorage.getItem('as_searches')) || [];
+    S.coupon = JSON.parse(localStorage.getItem('as_coupon')) || '';
+    S.settings = JSON.parse(localStorage.getItem('as_settings')) || S.settings;
+    S.coupons = JSON.parse(localStorage.getItem('as_coupons')) || DEFAULT_COUPONS;
+  } catch(e) {
+    S.products = SEED_DATA;
+  }
+}
+
+// Router
+function route() {
+  const h = window.location.hash || '#/';
+  const [p, q] = (h.slice(1) || '/').split('?');
+  const params = new URLSearchParams(q || '');
+
+  // Update back button
+  document.getElementById('btn-back').style.display = (p === '/' || p === '') ? 'none' : 'block';
+
+  // Update nav active
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  if (p === '/' || p === '') document.getElementById('nav-home').classList.add('active');
+  else if (p === '/explore') document.getElementById('nav-explore').classList.add('active');
+  else if (p === '/cart') document.getElementById('nav-cart').classList.add('active');
+  else if (p === '/account' || p === '/login' || p === '/orders' || p === '/wishlist') document.getElementById('nav-account').classList.add('active');
+
+  // Update cart badge
+  const totalItems = S.cart.reduce((sum, item) => sum + item.qty, 0);
+  const cb = document.getElementById('cart-badge');
+  const ncb = document.getElementById('nav-cart-badge');
+  if (totalItems > 0) {
+    cb.style.display = 'flex'; cb.innerText = totalItems > 99 ? '99+' : totalItems;
+    ncb.style.display = 'flex'; ncb.innerText = totalItems > 99 ? '99+' : totalItems;
+  } else {
+    cb.style.display = 'none';
+    ncb.style.display = 'none';
+  }
+
+  const el = document.getElementById('page-content');
+  el.style.display = 'block';
+  document.getElementById('sk-loader').style.display = 'none';
+
+  if (p === '/' || p === '') renderHome(el);
+  else if (p === '/explore') renderExplore(el);
+  else if (p === '/list') renderList(el, params);
+  else if (p.startsWith('/product/')) renderProduct(el, p.split('/')[2]);
+  else if (p === '/cart') renderCart(el);
+  else if (p === '/checkout') renderCheckout(el);
+  else if (p.startsWith('/order/')) renderOrderDetail(el, p.split('/')[2], params.get('new') === '1');
+  else if (p === '/orders') renderOrders(el);
+  else if (p === '/wishlist') renderWishlist(el);
+  else if (p === '/account') renderAccount(el);
+  else if (p === '/login') renderLogin(el, params);
+  else renderHome(el);
+
+  window.scrollTo(0, 0);
+}
+
+window.addEventListener('hashchange', route);
+
+/* Initializer */
+loadLocal();
+setTimeout(route, 100);
+
+// Basic UI interactions
+function openHelpSheet() {
+  document.getElementById('sheet-title').innerText = 'Help & Support';
+  document.getElementById('sheet-body').innerHTML = `
+    <div style="background:#fff7f2;border:1px solid rgba(248,86,6,0.3);padding:10px;border-radius:8px;display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <div>
+        <div style="font-size:11px;color:var(--grey);">Customer Hotline</div>
+        <div style="font-size:15px;font-weight:700;color:var(--brand);">${S.settings.phone}</div>
+      </div>
+      <a href="tel:${S.settings.phone}" class="btn sm" style="text-decoration:none;"><i class="fa fa-phone"></i> Call</a>
+    </div>
+    <div style="font-size:12px;line-height:1.6;color:#555;">
+      <strong>Payment Methods:</strong> Cash on Delivery, bKash, Nagad, Rocket.<br>
+      <strong>Delivery:</strong> Dhaka ৳${S.settings.nearFee}, outside ৳${S.settings.farFee}. Free delivery over ৳${S.settings.freeShip}.<br>
+      <strong>Returns:</strong> 7 days easy return for unused items.
+    </div>
+  `;
+  document.getElementById('sheet').classList.add('show');
+}
+function closeSheet() {
+  document.getElementById('sheet').classList.remove('show');
+}
+
+function renderHome(el) {
+  el.innerHTML = `
+    <div style="height:150px;border-radius:8px;background:linear-gradient(120deg,#f85606,#ff9a3c);display:flex;align-items:center;justify-content:space-between;padding:16px 20px;color:#fff;margin-bottom:12px;">
+      <div>
+        <h2 style="font-size:20px;font-weight:700;">Smart Bazar</h2>
+        <p style="font-size:12px;opacity:0.9;margin-bottom:8px;">Up to 60% off on top brands</p>
+        <a href="#/list?cat=Offers" style="background:#fff;color:#212121;font-size:12px;font-weight:700;padding:6px 14px;border-radius:20px;text-decoration:none;">Shop Now</a>
+      </div>
+      <div style="font-size:60px;">🛍️</div>
+    </div>
+    <div style="display:flex;gap:12px;overflow-x:auto;padding-bottom:10px;margin-bottom:12px;">
+      ${CATS.map(c => `
+        <a href="#/list?cat=${c}" style="display:flex;flex-direction:column;align-items:center;gap:4px;min-width:54px;">
+          <div style="width:45px;height:45px;border-radius:50%;background:#ffeedd;color:var(--brand);display:flex;align-items:center;justify-content:center;font-size:16px;">
+            <i class="fa fa-tag"></i>
+          </div>
+          <span style="font-size:11px;font-weight:500;">${c}</span>
+        </a>
+      `).join('')}
+    </div>
+    <h3 style="font-size:15px;font-weight:700;margin-bottom:8px;">Just For You</h3>
+    <div class="product-grid">
+      ${S.products.map(p => `
+        <div class="card" onclick="window.location.hash='#/product/${p.id}'">
+          <div class="card-thumb">
+            <img src="${getSvg(p.emoji, p.color)}" alt="${p.name}">
+            ${discPct(p.price, p.oldPrice) > 0 ? `<span class="disc-tag">-${discPct(p.price, p.oldPrice)}%</span>` : ''}
+            <button class="wish-btn ${S.wish.includes(p.id)?'active':''}" onclick="event.stopPropagation();toggleWish('${p.id}')">
+              <i class="fa fa-heart"></i>
+            </button>
+            ${p.stock <= 0 ? '<div class="sold-overlay">Sold Out</div>' : ''}
+          </div>
+          <div class="card-body">
+            <div class="card-title">${p.name}</div>
+            <div style="display:flex;align-items:baseline;">
+              <span class="card-price">${fmt(p.price)}</span>
+              ${p.oldPrice > p.price ? `<span class="card-oldprice">${fmt(p.oldPrice)}</span>` : ''}
+            </div>
+            ${p.stock > 0 ? `
+              <button class="quick-add" onclick="event.stopPropagation();quickAdd('${p.id}')">
+                <i class="fa fa-cart-plus"></i>
+              </button>
+            ` : ''}
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function quickAdd(id) {
+  const p = S.products.find(x => x.id === id);
+  if (!p || p.stock <= 0) return;
+  if (p.options && p.options.length > 0) {
+    toast('Select an option');
+    window.location.hash = '#/product/' + id;
+    return;
+  }
+  const item = S.cart.find(x => x.id === id);
+  if (item) {
+    if (item.qty < p.stock) item.qty++;
+  } else {
+    S.cart.push({ id, qty: 1 });
+  }
+  save('cart');
+  toast('Added to cart');
+  route();
+}
+
+function toggleWish(id) {
+  const idx = S.wish.indexOf(id);
+  if (idx > -1) {
+    S.wish.splice(idx, 1);
+    toast('Removed from wishlist');
+  } else {
+    S.wish.push(id);
+    toast('Added to wishlist');
+  }
+  save('wish');
+  route();
+}
+
+function renderProduct(el, id) {
+  const p = S.products.find(x => x.id === id);
+  if (!p) {
+    el.innerHTML = '<div style="text-align:center;padding:40px;">Product not found</div>';
+    return;
+  }
+  el.innerHTML = `
+    <div style="background:#fff;border-radius:8px;border:1px solid var(--line);overflow:hidden;margin-bottom:12px;">
+      <div style="height:280px;background:#fafafa;display:flex;align-items:center;justify-content:center;">
+        <img src="${getSvg(p.emoji, p.color)}" style="height:100%;object-fit:cover;">
+      </div>
+      <div style="padding:16px;">
+        <div style="font-size:24px;font-weight:700;color:var(--brand);">${fmt(p.price)}</div>
+        <h2 style="font-size:16px;font-weight:600;margin:6px 0;">${p.name}</h2>
+        <p style="font-size:12px;color:var(--grey);">${p.brand} · ${p.category} · Stock: ${p.stock}</p>
+        <p style="font-size:13px;line-height:1.5;margin-top:10px;">${p.description}</p>
+        <button class="btn blk" style="margin-top:16px;" onclick="quickAdd('${p.id}')">
+          <i class="fa fa-shopping-cart"></i> Add to Cart
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+function renderCart(el) {
+  if (S.cart.length === 0) {
+    el.innerHTML = `
+      <div style="background:#fff;border-radius:8px;padding:40px;text-align:center;border:1px solid var(--line);">
+        <i class="fa fa-shopping-cart" style="font-size:40px;color:var(--grey);margin-bottom:10px;"></i>
+        <p style="font-weight:600;">Your cart is empty</p>
+        <a href="#/" class="btn sm" style="margin-top:12px;text-decoration:none;">Start Shopping</a>
+      </div>
+    `;
+    return;
+  }
+  const subtotal = S.cart.reduce((sum, item) => {
+    const prod = S.products.find(p => p.id === item.id);
+    return sum + (prod ? prod.price * item.qty : 0);
+  }, 0);
+
+  el.innerHTML = `
+    <h2 style="font-size:16px;font-weight:700;margin-bottom:10px;">Shopping Cart</h2>
+    <div style="background:#fff;border-radius:8px;border:1px solid var(--line);padding:12px;margin-bottom:12px;">
+      ${S.cart.map(item => {
+        const prod = S.products.find(p => p.id === item.id);
+        if (!prod) return '';
+        return `
+          <div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);">
+            <img src="${getSvg(prod.emoji, prod.color)}" style="width:60px;height:60px;border-radius:4px;">
+            <div style="flex:1;">
+              <div style="font-size:13px;font-weight:500;">${prod.name}</div>
+              <div style="font-size:13px;color:var(--brand);font-weight:700;">${fmt(prod.price)} × ${item.qty}</div>
+            </div>
+            <button onclick="removeFromCart('${item.id}')" style="background:none;border:none;color:var(--err);cursor:pointer;padding:6px;">
+              <i class="fa fa-trash"></i>
+            </button>
+          </div>
+        `;
+      }).join('')}
+      <div style="display:flex;justify-content:space-between;padding-top:12px;font-weight:700;">
+        <span>Subtotal</span>
+        <span style="color:var(--brand);">${fmt(subtotal)}</span>
+      </div>
+    </div>
+    <a href="#/checkout" class="btn blk" style="text-decoration:none;">Proceed to Checkout</a>
+  `;
+}
+
+function removeFromCart(id) {
+  S.cart = S.cart.filter(x => x.id !== id);
+  save('cart');
+  toast('Item removed');
+  route();
+}
+
+function renderCheckout(el) {
+  const subtotal = S.cart.reduce((sum, item) => {
+    const prod = S.products.find(p => p.id === item.id);
+    return sum + (prod ? prod.price * item.qty : 0);
+  }, 0);
+
+  el.innerHTML = `
+    <h2 style="font-size:16px;font-weight:700;margin-bottom:10px;">Checkout</h2>
+    <form onsubmit="placeSimpleOrder(event)" style="background:#fff;border-radius:8px;border:1px solid var(--line);padding:16px;">
+      <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">Full Name *</label>
+      <input type="text" id="chk-name" required placeholder="Your Name" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:4px;margin-bottom:10px;">
+      <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">Mobile (01XXXXXXXXX) *</label>
+      <input type="tel" id="chk-phone" required placeholder="01XXXXXXXXX" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:4px;margin-bottom:10px;">
+      <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">District *</label>
+      <select id="chk-dist" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:4px;margin-bottom:10px;">
+        ${DISTRICTS.map(d => `<option value="${d}">${d}</option>`).join('')}
+      </select>
+      <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">Delivery Address *</label>
+      <textarea id="chk-addr" required placeholder="House, road, area, thana" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:4px;margin-bottom:12px;"></textarea>
+      <div style="font-size:13px;font-weight:700;margin-bottom:12px;display:flex;justify-content:space-between;">
+        <span>Total Payable (COD)</span>
+        <span style="color:var(--brand);">${fmt(subtotal + 60)}</span>
+      </div>
+      <button type="submit" class="btn blk">Confirm Order (Cash on Delivery)</button>
+    </form>
+  `;
+}
+
+function placeSimpleOrder(e) {
+  e.preventDefault();
+  const name = document.getElementById('chk-name').value;
+  const phone = document.getElementById('chk-phone').value;
+  const dist = document.getElementById('chk-dist').value;
+  const addr = document.getElementById('chk-addr').value;
+
+  const id = 'AS' + Date.now().toString(36).toUpperCase().slice(-6) + Math.floor(10 + Math.random() * 90);
+  const order = {
+    id,
+    uid: 'guest',
+    t: Date.now(),
+    status: 'Pending',
+    items: S.cart,
+    ship: { name, phone, district: dist, address: addr },
+    pay: { method: 'Cash on Delivery', status: 'Unpaid (COD)' },
+    total: 1000
+  };
+  S.orders.unshift(order);
+  save('orders');
+  S.cart = [];
+  save('cart');
+  window.location.hash = '#/order/' + id + '?new=1';
+}
+
+function renderOrderDetail(el, id, isNew) {
+  const o = S.orders.find(x => x.id === id);
+  if (!o) {
+    el.innerHTML = '<div style="text-align:center;padding:40px;">Order not found</div>';
+    return;
+  }
+  el.innerHTML = `
+    ${isNew ? '<div style="background:#e8f5e9;color:#2e7d32;padding:12px;border-radius:8px;text-align:center;font-weight:700;margin-bottom:12px;">Order Placed Successfully!</div>' : ''}
+    <div style="background:#fff;border-radius:8px;border:1px solid var(--line);padding:16px;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+        <span style="font-weight:700;">#${o.id}</span>
+        <span style="color:var(--ok);font-weight:700;">${o.status}</span>
+      </div>
+      <div style="font-size:12px;color:var(--grey);margin-bottom:12px;">Delivery to: ${o.ship.name}, ${o.ship.district}</div>
+      <div style="border-top:1px solid var(--line);padding-top:10px;">
+        <button class="btn line sm" onclick="window.print()"><i class="fa fa-print"></i> Print Invoice</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderExplore(el) {
+  el.innerHTML = `
+    <h2 style="font-size:16px;font-weight:700;margin-bottom:10px;">All Categories</h2>
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;">
+      ${CATS.map(c => `
+        <a href="#/list?cat=${c}" style="background:#fff;border:1px solid var(--line);border-radius:8px;padding:16px;text-align:center;text-decoration:none;">
+          <div style="font-size:24px;color:var(--brand);margin-bottom:6px;"><i class="fa fa-th-large"></i></div>
+          <div style="font-weight:700;font-size:14px;">${c}</div>
+        </a>
+      `).join('')}
+    </div>
+  `;
+}
+
+function renderList(el, params) {
+  const cat = params.get('cat') || 'All';
+  const q = params.get('q') || '';
+  let list = S.products;
+  if (cat !== 'All') {
+    if (cat === 'Offers') list = list.filter(p => discPct(p.price, p.oldPrice) >= 30);
+    else list = list.filter(p => p.category.toLowerCase() === cat.toLowerCase());
+  }
+  if (q) {
+    list = list.filter(p => (p.name + ' ' + p.brand).toLowerCase().includes(q.toLowerCase()));
+  }
+
+  el.innerHTML = `
+    <h2 style="font-size:15px;font-weight:700;margin-bottom:10px;">Results (${list.length})</h2>
+    <div class="product-grid">
+      ${list.map(p => `
+        <div class="card" onclick="window.location.hash='#/product/${p.id}'">
+          <div class="card-thumb">
+            <img src="${getSvg(p.emoji, p.color)}" alt="${p.name}">
+            ${discPct(p.price, p.oldPrice) > 0 ? `<span class="disc-tag">-${discPct(p.price, p.oldPrice)}%</span>` : ''}
+          </div>
+          <div class="card-body">
+            <div class="card-title">${p.name}</div>
+            <div class="card-price">${fmt(p.price)}</div>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function renderOrders(el) {
+  el.innerHTML = `
+    <h2 style="font-size:16px;font-weight:700;margin-bottom:10px;">My Orders</h2>
+    ${S.orders.length === 0 ? '<div style="background:#fff;padding:30px;border-radius:8px;text-align:center;">No orders placed yet.</div>' : ''}
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      ${S.orders.map(o => `
+        <a href="#/order/${o.id}" style="background:#fff;border:1px solid var(--line);border-radius:8px;padding:12px;text-decoration:none;display:flex;justify-content:space-between;">
+          <div>
+            <div style="font-weight:700;">#${o.id}</div>
+            <div style="font-size:12px;color:var(--grey);">${o.pay ? o.pay.method : 'COD'}</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="color:var(--brand);font-weight:700;">${o.status}</div>
+          </div>
+        </a>
+      `).join('')}
+    </div>
+  `;
+}
+
+function renderWishlist(el) {
+  const list = S.products.filter(p => S.wish.includes(p.id));
+  el.innerHTML = `
+    <h2 style="font-size:16px;font-weight:700;margin-bottom:10px;">My Wishlist (${list.length})</h2>
+    ${list.length === 0 ? '<div style="background:#fff;padding:30px;border-radius:8px;text-align:center;">Wishlist is empty.</div>' : ''}
+    <div class="product-grid">
+      ${list.map(p => `
+        <div class="card" onclick="window.location.hash='#/product/${p.id}'">
+          <div class="card-thumb">
+            <img src="${getSvg(p.emoji, p.color)}" alt="${p.name}">
+          </div>
+          <div class="card-body">
+            <div class="card-title">${p.name}</div>
+            <div class="card-price">${fmt(p.price)}</div>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function renderAccount(el) {
+  el.innerHTML = `
+    <div style="background:linear-gradient(120deg,#f85606,#ff9a3c);border-radius:8px;padding:16px;color:#fff;margin-bottom:12px;">
+      <h2 style="font-size:18px;font-weight:700;">Smart Bazar Account</h2>
+      <p style="font-size:12px;opacity:0.9;">Manage orders, addresses, and wishlist</p>
+    </div>
+    <div style="background:#fff;border-radius:8px;border:1px solid var(--line);overflow:hidden;display:flex;flex-direction:column;">
+      <a href="#/orders" style="padding:14px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;text-decoration:none;">
+        <span><i class="fa fa-box" style="margin-right:8px;color:var(--brand);"></i> My Orders</span>
+        <span>&rsaquo;</span>
+      </a>
+      <a href="#/wishlist" style="padding:14px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;text-decoration:none;">
+        <span><i class="fa fa-heart" style="margin-right:8px;color:#e91e63;"></i> My Wishlist</span>
+        <span>&rsaquo;</span>
+      </a>
+      <div onclick="openHelpSheet()" style="padding:14px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;cursor:pointer;">
+        <span><i class="fa fa-question-circle" style="margin-right:8px;color:var(--brand);"></i> Help & Support</span>
+        <span>&rsaquo;</span>
+      </div>
+    </div>
+  `;
+}
+
+function renderLogin(el, params) {
+  el.innerHTML = `
+    <div style="background:#fff;border-radius:8px;border:1px solid var(--line);padding:20px;max-width:400px;margin:20px auto;">
+      <h2 style="font-size:16px;font-weight:700;margin-bottom:12px;text-align:center;">Login to Smart Bazar</h2>
+      <input type="text" id="log-user" placeholder="Mobile number or Email" style="width:100%;padding:10px;border:1px solid var(--line);border-radius:4px;margin-bottom:10px;">
+      <input type="password" id="log-pass" placeholder="Password" style="width:100%;padding:10px;border:1px solid var(--line);border-radius:4px;margin-bottom:14px;">
+      <button class="btn blk" onclick="toast('Welcome back!'); window.location.hash='#/account';">Login</button>
+    </div>
+  `;
+}
+</script>
+</body>
+</html>
